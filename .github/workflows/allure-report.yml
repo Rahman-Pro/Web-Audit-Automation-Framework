@@ -1,50 +1,34 @@
-name: Allure Report
+import pytest
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import os
 
-on:
-  push:
-    branches:
-      - main
+@pytest.fixture
+def driver():
+    # Chrome options for GitHub Actions
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    # Auto install Chrome driver
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=chrome_options
+    )
+    yield driver
+    driver.quit()
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+@pytest.fixture
+def screenshot(driver):
+    # Create screenshots directory if it doesn't exist
+    os.makedirs("screenshots", exist_ok=True)
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.13'
+    def _screenshot(name):
+        driver.save_screenshot(f"screenshots/{name}.png")
 
-      - name: Install dependencies
-        run: |
-          pip install pytest allure-pytest requests beautifulsoup4
-
-      - name: Run Tests
-        env:
-          PYTHONPATH: .
-        # এখানে --clean-alluredir যোগ করা হয়েছে যাতে ফ্রেশ ডাটা তৈরি হয়
-        run: pytest tests/ -v --alluredir=allure-results --clean-alluredir || true
-        
-      - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@master
-        if: always()
-        with:
-          allure_results: allure-results
-          allure_report: allure-report
-          allure_history: allure-history
-
-      - name: Fix for GitHub Pages
-        if: always()
-        run: touch allure-report/.nojekyll
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: always()
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
+    return _screenshot
