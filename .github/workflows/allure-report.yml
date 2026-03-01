@@ -26,10 +26,10 @@ jobs:
 
       - name: Run Tests
         env:
-          PYTHONPATH: ${{ github.workspace }}
-        # We run from the root so it sees conftest.py and the tests/ folder
-        run: pytest . --alluredir=allure-results || true
-
+          PYTHONPATH: .
+        # এখানে --clean-alluredir যোগ করা হয়েছে যাতে ফ্রেশ ডাটা তৈরি হয়
+        run: pytest tests/ -v --alluredir=allure-results --clean-alluredir || true
+        
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
         if: always()
