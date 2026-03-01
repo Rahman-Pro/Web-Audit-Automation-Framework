@@ -1,34 +1,46 @@
-import pytest
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-import os
+name: Allure Report
 
-@pytest.fixture
-def driver():
-    # Chrome options for GitHub Actions
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
+on:
+  push:
+    branches:
+      - main
 
-    # Auto install Chrome driver
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=chrome_options
-    )
-    yield driver
-    driver.quit()
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-@pytest.fixture
-def screenshot(driver):
-    # Create screenshots directory if it doesn't exist
-    os.makedirs("screenshots", exist_ok=True)
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    def _screenshot(name):
-        driver.save_screenshot(f"screenshots/{name}.png")
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
-    return _screenshot
+      - name: Install dependencies
+        run: |
+          pip install pytest
+          pip install allure-pytest
+          pip install selenium
+          pip install webdriver-manager
+
+      - name: Run Tests with Allure
+        run: pytest tests/ -v --alluredir=allure-results
+        continue-on-error: true
+
+      - name: Generate Allure Report
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: allure-results
+          allure_report: allure-report
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
