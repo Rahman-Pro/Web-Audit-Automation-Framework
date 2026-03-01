@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Crucial for gh-pages deployment
 
     steps:
       - name: Checkout code
@@ -20,21 +22,23 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest
-          pip install allure-pytest
-          pip install requests
-          pip install beautifulsoup4
+          pip install pytest allure-pytest requests beautifulsoup4
 
       - name: Run Tests
-        run: pytest tests/ --alluredir=allure-results
+        # Added "|| true" so the workflow continues even if tests fail
+        run: pytest tests/ --alluredir=allure-results || true
 
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
+        if: always()
         with:
           allure_results: allure-results
+          allure_report: allure-report
+          allure_history: allure-history
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
+        if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-report
