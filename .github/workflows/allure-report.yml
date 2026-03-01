@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Crucial for gh-pages deployment
+      contents: write
 
     steps:
       - name: Checkout code
@@ -23,9 +23,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pytest allure-pytest requests beautifulsoup4
+          pip install -e . || true # Installs your project in editable mode if setup.py exists
 
       - name: Run Tests
-        # Added "|| true" so the workflow continues even if tests fail
+        env:
+          PYTHONPATH: .
+        # Running tests and ensuring results are saved to the correct folder
         run: pytest tests/ --alluredir=allure-results || true
 
       - name: Generate Allure Report
@@ -35,6 +38,10 @@ jobs:
           allure_results: allure-results
           allure_report: allure-report
           allure_history: allure-history
+
+      - name: Fix for GitHub Pages
+        if: always()
+        run: touch allure-report/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
