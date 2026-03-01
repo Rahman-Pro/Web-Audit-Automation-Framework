@@ -23,13 +23,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pytest allure-pytest requests beautifulsoup4
-          pip install -e . || true # Installs your project in editable mode if setup.py exists
 
       - name: Run Tests
         env:
-          PYTHONPATH: .
-        # Running tests and ensuring results are saved to the correct folder
-        run: pytest tests/ --alluredir=allure-results || true
+          PYTHONPATH: ${{ github.workspace }}
+        # We run from the root so it sees conftest.py and the tests/ folder
+        run: pytest . --alluredir=allure-results || true
 
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
